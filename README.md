@@ -1,9 +1,17 @@
+## This Repository is Archived
+
+We are immensely grateful to everyone who has been a part of the Nextcloud MediaDC journey. Your contributions and support have been invaluable.
+
+Unfortunately, we no longer have the capacity to maintain this repository, and it is now in an archived state. We need to move forward, and we thank you for your understanding.
+
 # Nextcloud MediaDC
 
 ![build](https://github.com/cloud-py-api/mediadc/actions/workflows/create-release-draft.yml/badge.svg)
 [![Publish to Nextcloud app store](https://github.com/cloud-py-api/mediadc/actions/workflows/publish-appstore.yml/badge.svg)](https://github.com/cloud-py-api/mediadc/actions/workflows/publish-appstore.yml)
 [![Test Binaries](https://github.com/cloud-py-api/mediadc/actions/workflows/test-binaries.yml/badge.svg)](https://github.com/cloud-py-api/mediadc/actions/workflows/test-binaries.yml)
 [![Github All Releases](https://img.shields.io/github/downloads/andrey18106/mediadc/total.svg)](https://github.com/cloud-py-api/mediadc/releases)
+
+
 
 **📸📹 Collect photo and video duplicates to save your cloud storage space**
 
