@@ -42,6 +42,10 @@ FIRST_FRAME_RESOLUTION = 64
 
 
 def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON process_videos started for {len(fs_objs)} files\n")
+        f.write(f"[TRACE] PYTHON settings: hash_size={settings['hash_size']}, precision_vid={settings['precision_vid']}\n")
+
     log.info("[TRACE] process_videos started for %d files", len(fs_objs))
     log.info("[TRACE] process_videos settings: hash_size=%d, precision_vid=%d", settings["hash_size"], settings["precision_vid"])
 
@@ -94,6 +98,9 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
 
 
 def process_video_record(precision: int, mdc_video_info: MdcVideoInfo):
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON process_video_record for file id={mdc_video_info['id']}, hash is None: {mdc_video_info['hash'] is None}\n")
+
     log.debug("[TRACE] process_video_record for file id=%u, hash is None: %s", mdc_video_info["id"], mdc_video_info["hash"] is None)
 
     # Skip if hash is None or invalid
@@ -105,29 +112,65 @@ def process_video_record(precision: int, mdc_video_info: MdcVideoInfo):
     log.debug("[TRACE] process_video_record comparing with %d existing groups", video_group_number)
 
     if check_hexstrings_within_dist:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON using hexhamming comparison, groups: {video_group_number}\n")
+
         log.debug("[TRACE] process_video_record using hexhamming comparison")
         for i in range(video_group_number):
             # Validate hash lengths before comparison
             if len(SetOfGroups[i]) != len(mdc_video_info["hash"]):
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON hash length mismatch: group {i} has {len(SetOfGroups[i])}, file has {len(mdc_video_info['hash'])}\n")
                 log.debug("[TRACE] process_video_record hash length mismatch: group %d has %d, file has %d",
                          i, len(SetOfGroups[i]), len(mdc_video_info["hash"]))
                 continue
-            if check_hexstrings_within_dist(SetOfGroups[i], mdc_video_info["hash"], precision):
-                log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
-                VideoGroups[i].append(mdc_video_info["id"])
-                return
+
+            with open('/tmp/mediadc_trace.log', 'a') as f:
+                f.write(f"[TRACE] PYTHON comparing file id={mdc_video_info['id']} with group {i}\n")
+
+            try:
+                if check_hexstrings_within_dist(SetOfGroups[i], mdc_video_info["hash"], precision):
+                    with open('/tmp/mediadc_trace.log', 'a') as f:
+                        f.write(f"[TRACE] PYTHON file id={mdc_video_info['id']} MATCHED group {i}\n")
+                    log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
+                    VideoGroups[i].append(mdc_video_info["id"])
+                    return
+            except Exception as e:
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON ERROR in hexhamming comparison: {str(e)}\n")
+                    f.write(f"[TRACE] PYTHON Group {i} hash length: {len(SetOfGroups[i])}\n")
+                    f.write(f"[TRACE] PYTHON File hash length: {len(mdc_video_info['hash'])}\n")
+                raise
     else:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON using numpy comparison, groups: {video_group_number}\n")
+
         log.debug("[TRACE] process_video_record using numpy comparison")
         for i in range(video_group_number):
             # Validate hash lengths before comparison
             if len(SetOfGroups[i]) != len(mdc_video_info["hash"]):
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON hash length mismatch: group {i} has {len(SetOfGroups[i])}, file has {len(mdc_video_info['hash'])}\n")
                 log.debug("[TRACE] process_video_record hash length mismatch: group %d has %d, file has %d",
                          i, len(SetOfGroups[i]), len(mdc_video_info["hash"]))
                 continue
-            if numpy.count_nonzero(SetOfGroups[i] != mdc_video_info["hash"]) <= precision:
-                log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
-                VideoGroups[i].append(mdc_video_info["id"])
-                return
+
+            with open('/tmp/mediadc_trace.log', 'a') as f:
+                f.write(f"[TRACE] PYTHON comparing file id={mdc_video_info['id']} with group {i}\n")
+
+            try:
+                if numpy.count_nonzero(SetOfGroups[i] != mdc_video_info["hash"]) <= precision:
+                    with open('/tmp/mediadc_trace.log', 'a') as f:
+                        f.write(f"[TRACE] PYTHON file id={mdc_video_info['id']} MATCHED group {i}\n")
+                    log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
+                    VideoGroups[i].append(mdc_video_info["id"])
+                    return
+            except Exception as e:
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON ERROR in numpy comparison: {str(e)}\n")
+                    f.write(f"[TRACE] PYTHON Group {i} hash length: {len(SetOfGroups[i])}\n")
+                    f.write(f"[TRACE] PYTHON File hash length: {len(mdc_video_info['hash'])}\n")
+                raise
 
     log.debug("[TRACE] process_video_record creating new group %d for file id=%u", video_group_number, mdc_video_info["id"])
     SetOfGroups.append(mdc_video_info["hash"])

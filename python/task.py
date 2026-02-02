@@ -151,6 +151,10 @@ def start_background_thread(task_info: dict):
 def process_task(task_info) -> None:
     """Top Level function. Checks if we can work on task, and if so - start to process it. Called from `main`."""
 
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON process_task started for task id={task_info['id']}\n")
+        f.write(f"[TRACE] PYTHON task_info: {str(task_info)}\n")
+
     log.info("[TRACE] process_task started for task id=%u", task_info["id"])
     log.info("[TRACE] process_task task_info: %s", str(task_info))
 

@@ -99,20 +99,20 @@ class CollectorService {
 	 * @return array created task start result (queued or started)
 	 */
 	public function runTask(array $params = []): array {
-		$this->logger->debug('[TRACE] runTask called with params: ' . json_encode($params));
+		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP runTask called with params: ' . json_encode($params) . "\n", FILE_APPEND);
 
 		$pyLimitSetting = $this->settingsMapper->findByName('python_limit');
 		$processesRunning = count($this->tasksMapper->findAllRunning());
 		$pythonBinary = $this->settingsMapper->findByName('python_binary');
 
-		$this->logger->debug('[TRACE] runTask processes running: ' . $processesRunning . ', limit: ' . $pyLimitSetting->getValue());
+		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP processes running: ' . $processesRunning . ', limit: ' . $pyLimitSetting->getValue() . "\n", FILE_APPEND);
 
 		// $queuedTask = null;
 
 		if ($processesRunning < (int)$pyLimitSetting->getValue()) {
-			$this->logger->debug('[TRACE] runTask creating new task');
+			file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP creating new task' . "\n", FILE_APPEND);
 			$createdTask = $this->createCollectorTask($params);
-			$this->logger->debug('[TRACE] runTask task created with id: ' . ($createdTask ? $createdTask->getId() : 'null'));
+			file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP task created with id: ' . ($createdTask ? $createdTask->getId() : 'null') . "\n", FILE_APPEND);
 
 			if ($createdTask !== null) {
 				if (json_decode($pythonBinary->getValue())) {
@@ -121,11 +121,11 @@ class CollectorService {
 				} else {
 					$scriptName = 'main.py';
 				}
-				$this->logger->debug('[TRACE] runTask script name: ' . $scriptName);
+				file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP script name: ' . $scriptName . "\n", FILE_APPEND);
 
 				if ($this->cpaUtils->isFunctionEnabled('exec')) {
 					if ($this->isObjectStore) {
-						$this->logger->debug('[TRACE] runTask prefetching binary for object store');
+						file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP prefetching binary for object store' . "\n", FILE_APPEND);
 						$result = $this->cpaUtils->prefetchAppDataFile(
 							Application::APP_ID,
 							'binaries',
@@ -138,7 +138,7 @@ class CollectorService {
 						// Prepend the cwd that is temp folder
 						$scriptName = $result['path'] . $scriptName;
 					}
-					$this->logger->debug('[TRACE] runTask calling pythonService->run with task id: ' . $createdTask->getId());
+					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP calling pythonService->run with task id: ' . $createdTask->getId() . "\n", FILE_APPEND);
 					$this->pythonService->run(Application::APP_ID, $scriptName, [
 						'-t' => $createdTask->getId()
 					], true, [
@@ -149,17 +149,17 @@ class CollectorService {
 						'LOGLEVEL' => $this->cpaUtils->getNCLogLevel(),
 						'CPA_LOGLEVEL' => $this->cpaUtils->getCpaLogLevel()
 					], true);
-					$this->logger->debug('[TRACE] runTask pythonService->run completed');
+					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP pythonService->run completed' . "\n", FILE_APPEND);
 				} else {
 					$this->logger->error('[' . self::class . '] Task run error: PHP `exec` function is not available');
 					return ['success' => false, 'php_exec_not_enabled' => true];
 				}
 			} else {
-				$this->logger->warning('[TRACE] runTask failed to create task');
+				file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP failed to create task' . "\n", FILE_APPEND);
 				return ['success' => $createdTask !== null, 'empty' => true];
 			}
 		} else {
-			$this->logger->info('[TRACE] runTask limit reached, cannot start new task');
+			file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP limit reached, cannot start new task' . "\n", FILE_APPEND);
 			return ['success' => false, 'limit' => true];
 			// Add as Queued job
 			// TODO: Add queued mechanism
@@ -167,7 +167,7 @@ class CollectorService {
 		}
 
 		// return ['success' => $createdTask !== null, 'queued' => $queuedTask !== null];
-		$this->logger->debug('[TRACE] runTask completed successfully');
+		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP runTask completed successfully' . "\n", FILE_APPEND);
 		return ['success' => $createdTask !== null, 'limit' => false];
 	}
 

@@ -12,6 +12,10 @@ from python.log import logger as log
 from python.task import process_task
 
 if __name__ == "__main__":
+    # Логируем запуск в файл для трассировки
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON main.py started with args: {sys.argv}\n")
+
     log.info("[TRACE] main.py started with args: %s", sys.argv)
     parser = argparse.ArgumentParser(description="Module for performing objects operations.", add_help=True)
     group = parser.add_mutually_exclusive_group()

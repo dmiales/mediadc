@@ -38,6 +38,10 @@ SetOfGroups: list[Any] = []  # [flat_numpy_array1,flat_numpy_array2,flat_numpy_a
 
 
 def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON process_images started for {len(fs_objs)} files\n")
+        f.write(f"[TRACE] PYTHON settings: hash_size={settings['hash_size']}, precision_img={settings['precision_img']}\n")
+
     log.info("[TRACE] process_images started for %d files", len(fs_objs))
     log.info("[TRACE] process_images settings: hash_size=%d, precision_img=%d", settings["hash_size"], settings["precision_img"])
 
@@ -121,6 +125,9 @@ def calc_hash(algo: str, hash_size: int, image_data: bytes, exif_transpose=True)
 
 
 def process_image_record(precision: int, mdc_img_info: MdcImageInfo):
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON process_image_record for file id={mdc_img_info['id']}, hash is None: {mdc_img_info['hash'] is None}\n")
+
     log.debug("[TRACE] process_image_record for file id=%u, hash is None: %s", mdc_img_info["id"], mdc_img_info["hash"] is None)
 
     # Skip if hash is None or invalid
@@ -132,29 +139,65 @@ def process_image_record(precision: int, mdc_img_info: MdcImageInfo):
     log.debug("[TRACE] process_image_record comparing with %d existing groups", img_group_number)
 
     if check_hexstrings_within_dist:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON using hexhamming comparison, groups: {img_group_number}\n")
+
         log.debug("[TRACE] process_image_record using hexhamming comparison")
         for i in range(img_group_number):
             # Validate hash lengths before comparison
             if len(SetOfGroups[i]) != len(mdc_img_info["hash"]):
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON hash length mismatch: group {i} has {len(SetOfGroups[i])}, file has {len(mdc_img_info['hash'])}\n")
                 log.debug("[TRACE] process_image_record hash length mismatch: group %d has %d, file has %d",
                          i, len(SetOfGroups[i]), len(mdc_img_info["hash"]))
                 continue
-            if check_hexstrings_within_dist(SetOfGroups[i], mdc_img_info["hash"], precision):
-                log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
-                ImagesGroups[i].append(mdc_img_info["id"])
-                return
+
+            with open('/tmp/mediadc_trace.log', 'a') as f:
+                f.write(f"[TRACE] PYTHON comparing file id={mdc_img_info['id']} with group {i}\n")
+
+            try:
+                if check_hexstrings_within_dist(SetOfGroups[i], mdc_img_info["hash"], precision):
+                    with open('/tmp/mediadc_trace.log', 'a') as f:
+                        f.write(f"[TRACE] PYTHON file id={mdc_img_info['id']} MATCHED group {i}\n")
+                    log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
+                    ImagesGroups[i].append(mdc_img_info["id"])
+                    return
+            except Exception as e:
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON ERROR in hexhamming comparison: {str(e)}\n")
+                    f.write(f"[TRACE] PYTHON Group {i} hash length: {len(SetOfGroups[i])}\n")
+                    f.write(f"[TRACE] PYTHON File hash length: {len(mdc_img_info['hash'])}\n")
+                raise
     else:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON using numpy comparison, groups: {img_group_number}\n")
+
         log.debug("[TRACE] process_image_record using numpy comparison")
         for i in range(img_group_number):
             # Validate hash lengths before comparison
             if len(SetOfGroups[i]) != len(mdc_img_info["hash"]):
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON hash length mismatch: group {i} has {len(SetOfGroups[i])}, file has {len(mdc_img_info['hash'])}\n")
                 log.debug("[TRACE] process_image_record hash length mismatch: group %d has %d, file has %d",
                          i, len(SetOfGroups[i]), len(mdc_img_info["hash"]))
                 continue
-            if numpy.count_nonzero(SetOfGroups[i] != mdc_img_info["hash"]) <= precision:
-                log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
-                ImagesGroups[i].append(mdc_img_info["id"])
-                return
+
+            with open('/tmp/mediadc_trace.log', 'a') as f:
+                f.write(f"[TRACE] PYTHON comparing file id={mdc_img_info['id']} with group {i}\n")
+
+            try:
+                if numpy.count_nonzero(SetOfGroups[i] != mdc_img_info["hash"]) <= precision:
+                    with open('/tmp/mediadc_trace.log', 'a') as f:
+                        f.write(f"[TRACE] PYTHON file id={mdc_img_info['id']} MATCHED group {i}\n")
+                    log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
+                    ImagesGroups[i].append(mdc_img_info["id"])
+                    return
+            except Exception as e:
+                with open('/tmp/mediadc_trace.log', 'a') as f:
+                    f.write(f"[TRACE] PYTHON ERROR in numpy comparison: {str(e)}\n")
+                    f.write(f"[TRACE] PYTHON Group {i} hash length: {len(SetOfGroups[i])}\n")
+                    f.write(f"[TRACE] PYTHON File hash length: {len(mdc_img_info['hash'])}\n")
+                raise
 
     log.debug("[TRACE] process_image_record creating new group %d for file id=%u", img_group_number, mdc_img_info["id"])
     SetOfGroups.append(mdc_img_info["hash"])
