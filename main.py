@@ -2,7 +2,58 @@
 import sys
 import os
 
-# СНАЧАЛА пишем в stderr (это всегда работает)
+# ПЕРЕНАПРАВЛЯЕМ stderr В ФАЙЛ, чтобы не потерять логи
+_stderr_log_file = None
+stderr_log_path = None
+try:
+    # Определяем имя файла для stderr на основе аргументов
+    task_id = None
+    if len(sys.argv) > 1:
+        for i, arg in enumerate(sys.argv):
+            if arg == '-t' and i + 1 < len(sys.argv):
+                task_id = sys.argv[i + 1]
+                break
+    
+    stderr_log_path = f'/tmp/mediadc_python_stderr_{task_id if task_id else "unknown"}.log'
+    _stderr_log_file = open(stderr_log_path, 'a', buffering=1)  # line buffering
+    # Сохраняем оригинальный stderr для критических ошибок
+    _original_stderr = sys.stderr
+    # Перенаправляем stderr в файл И в оригинальный stderr
+    class TeeStderr:
+        def __init__(self, file, original):
+            self.file = file
+            self.original = original
+        def write(self, data):
+            try:
+                self.file.write(data)
+                self.file.flush()
+            except:
+                pass
+            try:
+                self.original.write(data)
+                self.original.flush()
+            except:
+                pass
+        def flush(self):
+            try:
+                self.file.flush()
+            except:
+                pass
+            try:
+                self.original.flush()
+            except:
+                pass
+    
+    sys.stderr = TeeStderr(_stderr_log_file, _original_stderr)
+except Exception as e:
+    # Если не удалось перенаправить, хотя бы попробуем записать ошибку
+    try:
+        sys.stderr.write(f"[TRACE] PYTHON ERROR setting up stderr redirection: {e}\n")
+        sys.stderr.flush()
+    except:
+        pass
+
+# СНАЧАЛА пишем в stderr (теперь это идёт и в файл, и в оригинальный stderr)
 sys.stderr.write("=" * 80 + "\n")
 sys.stderr.write("[TRACE] PYTHON main.py SCRIPT STARTED\n")
 sys.stderr.write(f"[TRACE] PYTHON args: {sys.argv}\n")
@@ -12,6 +63,8 @@ try:
 except:
     sys.stderr.write("[TRACE] PYTHON cannot get working directory\n")
 sys.stderr.write(f"[TRACE] PYTHON sys.path: {sys.path}\n")
+if _stderr_log_file:
+    sys.stderr.write(f"[TRACE] PYTHON stderr redirected to: {stderr_log_path}\n")
 sys.stderr.flush()
 
 # Затем пробуем записать в файл

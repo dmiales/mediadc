@@ -140,7 +140,7 @@ class CollectorService {
 					}
 					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP calling pythonService->run with task id: ' . $createdTask->getId() . "\n", FILE_APPEND);
 					
-					// Перехватываем stderr Python-процесса
+					// Python сам перенаправит stderr в файл
 					$stderrFile = '/tmp/mediadc_python_stderr_' . $createdTask->getId() . '.log';
 					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr will be logged to: ' . $stderrFile . "\n", FILE_APPEND);
 					
@@ -155,10 +155,15 @@ class CollectorService {
 						'CPA_LOGLEVEL' => $this->cpaUtils->getCpaLogLevel()
 					], true);
 					
-					// Проверяем stderr после запуска
+					// Ждём немного и проверяем stderr
+					usleep(500000); // 0.5 секунды
 					if (file_exists($stderrFile)) {
 						$stderrContent = file_get_contents($stderrFile);
-						file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr content: ' . $stderrContent . "\n", FILE_APPEND);
+						if (!empty($stderrContent)) {
+							file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr (first 1000 chars): ' . substr($stderrContent, 0, 1000) . "\n", FILE_APPEND);
+						}
+					} else {
+						file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr file not created yet: ' . $stderrFile . "\n", FILE_APPEND);
 					}
 					
 					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP pythonService->run completed' . "\n", FILE_APPEND);
