@@ -38,6 +38,8 @@ SetOfGroups: list[Any] = []  # [flat_numpy_array1,flat_numpy_array2,flat_numpy_a
 
 def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
     mdc_images_info = load_images_caches(fs_objs)
+    expected_hash_length = (settings["hash_size"] * settings["hash_size"] + 7) // 8 * 2  # Expected hex string length
+
     for mdc_image_info in mdc_images_info:
         if mdc_image_info["skipped"] is not None:
             if mdc_image_info["skipped"] >= 2:
@@ -55,10 +57,22 @@ def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
                 settings["exif_transpose"],
             )
         else:
+            # Validate cached hash length
             if check_hexstrings_within_dist:
-                mdc_image_info["hash"] = mdc_image_info["hash"].hex()
+                hex_hash = mdc_image_info["hash"].hex()
+                if len(hex_hash) != expected_hash_length:
+                    log.debug("Cached hash length mismatch for fileid %u, expected %u, got %u. Skipping file.",
+                             mdc_image_info["id"], expected_hash_length, len(hex_hash))
+                    continue
+                mdc_image_info["hash"] = hex_hash
             else:
-                mdc_image_info["hash"] = arr_hash_from_bytes(mdc_image_info["hash"])
+                hash_array = arr_hash_from_bytes(mdc_image_info["hash"])
+                expected_bits = settings["hash_size"] * settings["hash_size"]
+                if len(hash_array) != expected_bits:
+                    log.debug("Cached hash length mismatch for fileid %u, expected %u bits, got %u. Skipping file.",
+                             mdc_image_info["id"], expected_bits, len(hash_array))
+                    continue
+                mdc_image_info["hash"] = hash_array
         if mdc_image_info["hash"] is not None:
             process_image_record(settings["precision_img"], mdc_image_info)
 

@@ -43,6 +43,8 @@ FIRST_FRAME_RESOLUTION = 64
 
 def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
     mdc_videos_info = load_videos_caches(fs_objs)
+    expected_hash_length = (settings["hash_size"] * settings["hash_size"] * 4 + 7) // 8 * 2  # Expected hex string length for 4 frames
+
     for mdc_video_info in mdc_videos_info:
         if mdc_video_info["skipped"] is not None:
             if mdc_video_info["skipped"] >= 2:
@@ -59,10 +61,22 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
                 mdc_video_info,
             )
         else:
+            # Validate cached hash length
             if check_hexstrings_within_dist:
-                mdc_video_info["hash"] = mdc_video_info["hash"].hex()
+                hex_hash = mdc_video_info["hash"].hex()
+                if len(hex_hash) != expected_hash_length:
+                    log.debug("Cached video hash length mismatch for fileid %u, expected %u, got %u. Skipping file.",
+                             mdc_video_info["id"], expected_hash_length, len(hex_hash))
+                    continue
+                mdc_video_info["hash"] = hex_hash
             else:
-                mdc_video_info["hash"] = arr_hash_from_bytes(mdc_video_info["hash"])
+                hash_array = arr_hash_from_bytes(mdc_video_info["hash"])
+                expected_bits = settings["hash_size"] * settings["hash_size"] * 4
+                if len(hash_array) != expected_bits:
+                    log.debug("Cached video hash length mismatch for fileid %u, expected %u bits, got %u. Skipping file.",
+                             mdc_video_info["id"], expected_bits, len(hash_array))
+                    continue
+                mdc_video_info["hash"] = hash_array
         if mdc_video_info["hash"] is not None:
             process_video_record(settings["precision_vid"], mdc_video_info)
 
