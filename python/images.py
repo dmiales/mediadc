@@ -38,8 +38,14 @@ SetOfGroups: list[Any] = []  # [flat_numpy_array1,flat_numpy_array2,flat_numpy_a
 
 
 def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
+    log.info("[TRACE] process_images started for %d files", len(fs_objs))
+    log.info("[TRACE] process_images settings: hash_size=%d, precision_img=%d", settings["hash_size"], settings["precision_img"])
+
     mdc_images_info = load_images_caches(fs_objs)
+    log.info("[TRACE] process_images loaded cache for %d images", len(mdc_images_info))
+
     expected_hash_length = (settings["hash_size"] * settings["hash_size"] + 7) // 8 * 2  # Expected hex string length
+    log.info("[TRACE] process_images expected hash length: %d", expected_hash_length)
 
     for mdc_image_info in mdc_images_info:
         if mdc_image_info["skipped"] is not None:
@@ -115,17 +121,42 @@ def calc_hash(algo: str, hash_size: int, image_data: bytes, exif_transpose=True)
 
 
 def process_image_record(precision: int, mdc_img_info: MdcImageInfo):
+    log.debug("[TRACE] process_image_record for file id=%u, hash is None: %s", mdc_img_info["id"], mdc_img_info["hash"] is None)
+
+    # Skip if hash is None or invalid
+    if mdc_img_info["hash"] is None:
+        log.debug("[TRACE] process_image_record skipping file id=%u due to None hash", mdc_img_info["id"])
+        return
+
     img_group_number = len(ImagesGroups)
+    log.debug("[TRACE] process_image_record comparing with %d existing groups", img_group_number)
+
     if check_hexstrings_within_dist:
+        log.debug("[TRACE] process_image_record using hexhamming comparison")
         for i in range(img_group_number):
+            # Validate hash lengths before comparison
+            if len(SetOfGroups[i]) != len(mdc_img_info["hash"]):
+                log.debug("[TRACE] process_image_record hash length mismatch: group %d has %d, file has %d",
+                         i, len(SetOfGroups[i]), len(mdc_img_info["hash"]))
+                continue
             if check_hexstrings_within_dist(SetOfGroups[i], mdc_img_info["hash"], precision):
+                log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
                 ImagesGroups[i].append(mdc_img_info["id"])
                 return
     else:
+        log.debug("[TRACE] process_image_record using numpy comparison")
         for i in range(img_group_number):
+            # Validate hash lengths before comparison
+            if len(SetOfGroups[i]) != len(mdc_img_info["hash"]):
+                log.debug("[TRACE] process_image_record hash length mismatch: group %d has %d, file has %d",
+                         i, len(SetOfGroups[i]), len(mdc_img_info["hash"]))
+                continue
             if numpy.count_nonzero(SetOfGroups[i] != mdc_img_info["hash"]) <= precision:
+                log.debug("[TRACE] process_image_record file id=%u matched group %d", mdc_img_info["id"], i)
                 ImagesGroups[i].append(mdc_img_info["id"])
                 return
+
+    log.debug("[TRACE] process_image_record creating new group %d for file id=%u", img_group_number, mdc_img_info["id"])
     SetOfGroups.append(mdc_img_info["hash"])
     ImagesGroups[img_group_number] = [mdc_img_info["id"]]
 

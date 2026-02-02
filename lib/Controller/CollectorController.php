@@ -87,13 +87,22 @@ class CollectorController extends Controller {
 		array|string $collectorSettings,
 		string $name,
 	): JSONResponse {
+		\OCP\Util::writeLog('mediadc', '[TRACE] runTask called with name: ' . $name, \OCP\Util::INFO);
+		\OCP\Util::writeLog('mediadc', '[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds, \OCP\Util::INFO);
+		\OCP\Util::writeLog('mediadc', '[TRACE] runTask collectorSettings: ' . $collectorSettings, \OCP\Util::INFO);
+
 		$params = [
 			'targetDirectoryIds' => json_decode($targetDirectoryIds),
 			'excludeList' => $excludeList,
 			'collectorSettings' => $collectorSettings,
 			'name' => $name,
 		];
-		return new JSONResponse($this->service->runTask($params), Http::STATUS_OK);
+
+		\OCP\Util::writeLog('mediadc', '[TRACE] runTask calling service->runTask', \OCP\Util::INFO);
+		$result = $this->service->runTask($params);
+		\OCP\Util::writeLog('mediadc', '[TRACE] runTask service->runTask completed', \OCP\Util::INFO);
+
+		return new JSONResponse($result, Http::STATUS_OK);
 	}
 
 	#[NoAdminRequired]

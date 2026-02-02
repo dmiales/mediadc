@@ -151,45 +151,92 @@ def start_background_thread(task_info: dict):
 def process_task(task_info) -> None:
     """Top Level function. Checks if we can work on task, and if so - start to process it. Called from `main`."""
 
-    log.debug("Processing task: id=%u", task_info["id"])
+    log.info("[TRACE] process_task started for task id=%u", task_info["id"])
+    log.info("[TRACE] process_task task_info: %s", str(task_info))
+
     if not analyze_and_lock(task_info):
+        log.info("[TRACE] process_task failed to analyze and lock task id=%u", task_info["id"])
         return
+
+    log.info("[TRACE] process_task successfully locked task id=%u", task_info["id"])
+
     _task_status = "error"
     try:
+        log.info("[TRACE] process_task resetting data groups")
         reset_data_groups()
+        log.info("[TRACE] process_task initializing task settings")
         task_settings = init_task_settings(task_info)
+        log.info("[TRACE] process_task settings: %s", str(task_settings))
+        log.info("[TRACE] process_task starting background thread")
         start_background_thread(task_info)
         time_start = perf_counter()
-        if TaskType(task_settings["type"]) == TaskType.IMAGE:
+
+        task_type = TaskType(task_settings["type"])
+        log.info("[TRACE] process_task task type: %s", task_type.name)
+
+        if task_type == TaskType.IMAGE:
+            log.info("[TRACE] process_task starting image processing")
             process_image_task(task_settings)
-        elif TaskType(task_settings["type"]) == TaskType.VIDEO:
+            log.info("[TRACE] process_task completed image processing")
+        elif task_type == TaskType.VIDEO:
+            log.info("[TRACE] process_task starting video processing")
             process_video_task(task_settings, 0)
-        elif TaskType(task_settings["type"]) == TaskType.IMAGE_VIDEO:
+            log.info("[TRACE] process_task completed video processing")
+        elif task_type == TaskType.IMAGE_VIDEO:
+            log.info("[TRACE] process_task starting image+video processing")
             group_offset = process_image_task(task_settings)
+            log.info("[TRACE] process_task image processing completed, group_offset=%u", group_offset)
             process_video_task(task_settings, group_offset)
+            log.info("[TRACE] process_task video processing completed")
+
         _task_status = "finished"
-        log.info("Task execution_time: %d seconds", perf_counter() - time_start)
+        execution_time = perf_counter() - time_start
+        log.info("[TRACE] process_task task completed successfully in %d seconds", execution_time)
+        log.info("Task execution_time: %d seconds", execution_time)
+        log.info("[TRACE] process_task finalizing task")
         finalize_task(task_info["id"])
+        log.info("[TRACE] process_task task finalized")
     except Exception as exception_info:  # noqa # pylint: disable=broad-except
+        log.exception("[TRACE] process_task exception during task execution")
         log.exception("Exception during task execution.")
         append_task_error(task_info["id"], f"Exception({type(exception_info).__name__}): `{str(exception_info)}`")
     finally:
+        log.info("[TRACE] process_task cleanup started")
         if "b_thread" in task_info:
+            log.info("[TRACE] process_task stopping background thread")
             task_info["exit_event"].set()
             task_info["b_thread"].join(timeout=2.0)
+        log.info("[TRACE] process_task unlocking task")
         unlock_task(task_info["id"])
         log.debug("Task unlocked.")
         if task_info.get("collector_settings", {}).get("finish_notification", False):
+            log.info("[TRACE] process_task sending notification")
             occ_call_decode("mediadc:collector:tasks:notify", str(task_info["id"]), _task_status)
+        log.info("[TRACE] process_task completed with status: %s", _task_status)
 
 
 def process_image_task(task_settings: dict) -> int:
     """Top Level function to process image task. As input param expects dict from `init_task_settings` function."""
 
+    log.info("[TRACE] process_image_task started for task id=%u", task_settings["id"])
+    log.info("[TRACE] process_image_task target_dirs: %s", task_settings["target_dirs"])
+
+    log.info("[TRACE] process_image_task getting filesystem nodes")
     fs_objs = fs_nodes_info(task_settings["target_dirs"])
+    log.info("[TRACE] process_image_task found %d filesystem objects", len(fs_objs))
+
+    log.info("[TRACE] process_image_task applying exclude lists")
     fs_apply_exclude_lists(fs_objs, task_settings["exclude_fileid"], task_settings["exclude_mask"])
+    log.info("[TRACE] process_image_task after exclude: %d objects", len(fs_objs))
+
+    log.info("[TRACE] process_image_task processing directories")
     process_image_task_dirs(fs_objs, task_settings)
-    return save_image_results(task_settings["id"])
+
+    log.info("[TRACE] process_image_task saving results")
+    result = save_image_results(task_settings["id"])
+    log.info("[TRACE] process_image_task completed, saved %d groups", result)
+
+    return result
 
 
 def process_image_task_dirs(directories: list[FsNodeInfo], task_settings: dict):
@@ -216,10 +263,22 @@ def process_directory_images(directory: FsNodeInfo, task_settings: dict) -> list
 def process_video_task(task_settings: dict, group_offset: int):
     """Top Level function to process video task. As input param expects dict from `init_task_settings` function."""
 
+    log.info("[TRACE] process_video_task started for task id=%u, group_offset=%u", task_settings["id"], group_offset)
+
+    log.info("[TRACE] process_video_task getting filesystem nodes")
     fs_objs = fs_nodes_info(task_settings["target_dirs"])
+    log.info("[TRACE] process_video_task found %d filesystem objects", len(fs_objs))
+
+    log.info("[TRACE] process_video_task applying exclude lists")
     fs_apply_exclude_lists(fs_objs, task_settings["exclude_fileid"], task_settings["exclude_mask"])
+    log.info("[TRACE] process_video_task after exclude: %d objects", len(fs_objs))
+
+    log.info("[TRACE] process_video_task processing directories")
     process_video_task_dirs(fs_objs, task_settings)
+
+    log.info("[TRACE] process_video_task saving results")
     save_video_results(task_settings["id"], group_offset)
+    log.info("[TRACE] process_video_task completed")
 
 
 def process_video_task_dirs(directories: list[FsNodeInfo], task_settings: dict):

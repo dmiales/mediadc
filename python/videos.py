@@ -42,8 +42,14 @@ FIRST_FRAME_RESOLUTION = 64
 
 
 def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
+    log.info("[TRACE] process_videos started for %d files", len(fs_objs))
+    log.info("[TRACE] process_videos settings: hash_size=%d, precision_vid=%d", settings["hash_size"], settings["precision_vid"])
+
     mdc_videos_info = load_videos_caches(fs_objs)
+    log.info("[TRACE] process_videos loaded cache for %d videos", len(mdc_videos_info))
+
     expected_hash_length = (settings["hash_size"] * settings["hash_size"] * 4 + 7) // 8 * 2  # Expected hex string length for 4 frames
+    log.info("[TRACE] process_videos expected hash length: %d", expected_hash_length)
 
     for mdc_video_info in mdc_videos_info:
         if mdc_video_info["skipped"] is not None:
@@ -88,17 +94,42 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
 
 
 def process_video_record(precision: int, mdc_video_info: MdcVideoInfo):
+    log.debug("[TRACE] process_video_record for file id=%u, hash is None: %s", mdc_video_info["id"], mdc_video_info["hash"] is None)
+
+    # Skip if hash is None or invalid
+    if mdc_video_info["hash"] is None:
+        log.debug("[TRACE] process_video_record skipping file id=%u due to None hash", mdc_video_info["id"])
+        return
+
     video_group_number = len(VideoGroups)
+    log.debug("[TRACE] process_video_record comparing with %d existing groups", video_group_number)
+
     if check_hexstrings_within_dist:
+        log.debug("[TRACE] process_video_record using hexhamming comparison")
         for i in range(video_group_number):
+            # Validate hash lengths before comparison
+            if len(SetOfGroups[i]) != len(mdc_video_info["hash"]):
+                log.debug("[TRACE] process_video_record hash length mismatch: group %d has %d, file has %d",
+                         i, len(SetOfGroups[i]), len(mdc_video_info["hash"]))
+                continue
             if check_hexstrings_within_dist(SetOfGroups[i], mdc_video_info["hash"], precision):
+                log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
                 VideoGroups[i].append(mdc_video_info["id"])
                 return
     else:
+        log.debug("[TRACE] process_video_record using numpy comparison")
         for i in range(video_group_number):
+            # Validate hash lengths before comparison
+            if len(SetOfGroups[i]) != len(mdc_video_info["hash"]):
+                log.debug("[TRACE] process_video_record hash length mismatch: group %d has %d, file has %d",
+                         i, len(SetOfGroups[i]), len(mdc_video_info["hash"]))
+                continue
             if numpy.count_nonzero(SetOfGroups[i] != mdc_video_info["hash"]) <= precision:
+                log.debug("[TRACE] process_video_record file id=%u matched group %d", mdc_video_info["id"], i)
                 VideoGroups[i].append(mdc_video_info["id"])
                 return
+
+    log.debug("[TRACE] process_video_record creating new group %d for file id=%u", video_group_number, mdc_video_info["id"])
     SetOfGroups.append(mdc_video_info["hash"])
     VideoGroups[video_group_number] = [mdc_video_info["id"]]
 

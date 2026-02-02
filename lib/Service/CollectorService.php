@@ -99,13 +99,21 @@ class CollectorService {
 	 * @return array created task start result (queued or started)
 	 */
 	public function runTask(array $params = []): array {
+		$this->logger->info('[TRACE] runTask called with params: ' . json_encode($params));
+
 		$pyLimitSetting = $this->settingsMapper->findByName('python_limit');
 		$processesRunning = count($this->tasksMapper->findAllRunning());
 		$pythonBinary = $this->settingsMapper->findByName('python_binary');
+
+		$this->logger->info('[TRACE] runTask processes running: ' . $processesRunning . ', limit: ' . $pyLimitSetting->getValue());
+
 		// $queuedTask = null;
 
 		if ($processesRunning < (int)$pyLimitSetting->getValue()) {
+			$this->logger->info('[TRACE] runTask creating new task');
 			$createdTask = $this->createCollectorTask($params);
+			$this->logger->info('[TRACE] runTask task created with id: ' . ($createdTask ? $createdTask->getId() : 'null'));
+
 			if ($createdTask !== null) {
 				if (json_decode($pythonBinary->getValue())) {
 					$scriptName = 'binaries/' . Application::APP_ID
@@ -113,8 +121,11 @@ class CollectorService {
 				} else {
 					$scriptName = 'main.py';
 				}
+				$this->logger->info('[TRACE] runTask script name: ' . $scriptName);
+
 				if ($this->cpaUtils->isFunctionEnabled('exec')) {
 					if ($this->isObjectStore) {
+						$this->logger->info('[TRACE] runTask prefetching binary for object store');
 						$result = $this->cpaUtils->prefetchAppDataFile(
 							Application::APP_ID,
 							'binaries',
@@ -127,6 +138,7 @@ class CollectorService {
 						// Prepend the cwd that is temp folder
 						$scriptName = $result['path'] . $scriptName;
 					}
+					$this->logger->info('[TRACE] runTask calling pythonService->run with task id: ' . $createdTask->getId());
 					$this->pythonService->run(Application::APP_ID, $scriptName, [
 						'-t' => $createdTask->getId()
 					], true, [
@@ -137,14 +149,17 @@ class CollectorService {
 						'LOGLEVEL' => $this->cpaUtils->getNCLogLevel(),
 						'CPA_LOGLEVEL' => $this->cpaUtils->getCpaLogLevel()
 					], true);
+					$this->logger->info('[TRACE] runTask pythonService->run completed');
 				} else {
 					$this->logger->error('[' . self::class . '] Task run error: PHP `exec` function is not available');
 					return ['success' => false, 'php_exec_not_enabled' => true];
 				}
 			} else {
+				$this->logger->warning('[TRACE] runTask failed to create task');
 				return ['success' => $createdTask !== null, 'empty' => true];
 			}
 		} else {
+			$this->logger->info('[TRACE] runTask limit reached, cannot start new task');
 			return ['success' => false, 'limit' => true];
 			// Add as Queued job
 			// TODO: Add queued mechanism
@@ -152,6 +167,7 @@ class CollectorService {
 		}
 
 		// return ['success' => $createdTask !== null, 'queued' => $queuedTask !== null];
+		$this->logger->info('[TRACE] runTask completed successfully');
 		return ['success' => $createdTask !== null, 'limit' => false];
 	}
 
