@@ -75,24 +75,32 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
             if check_hexstrings_within_dist:
                 hex_hash = mdc_video_info["hash"].hex()
                 if len(hex_hash) != expected_hash_length:
-                    log.warning("Cached video hash length mismatch for fileid %u, expected %u, got %u. Clearing invalid cache entry.",
+                    log.warning("Cached video hash length mismatch for fileid %u, expected %u, got %u. Recalculating hash.",
                                mdc_video_info["id"], expected_hash_length, len(hex_hash))
-                    # Clear invalid cache entry from database
-                    store_err_video_hash(mdc_video_info["id"], mdc_video_info.get("duration", 0), mdc_video_info["mtime"], 0)
+                    # Clear invalid cache entry and recalculate
                     mdc_video_info["hash"] = None
-                    continue
-                mdc_video_info["hash"] = hex_hash
+                    process_video_hash(
+                        settings["hash_algo"],
+                        settings["hash_size"],
+                        mdc_video_info,
+                    )
+                else:
+                    mdc_video_info["hash"] = hex_hash
             else:
                 hash_array = arr_hash_from_bytes(mdc_video_info["hash"])
                 expected_bits = settings["hash_size"] * settings["hash_size"] * 4
                 if len(hash_array) != expected_bits:
-                    log.warning("Cached video hash length mismatch for fileid %u, expected %u bits, got %u. Clearing invalid cache entry.",
+                    log.warning("Cached video hash length mismatch for fileid %u, expected %u bits, got %u. Recalculating hash.",
                                mdc_video_info["id"], expected_bits, len(hash_array))
-                    # Clear invalid cache entry from database
-                    store_err_video_hash(mdc_video_info["id"], mdc_video_info.get("duration", 0), mdc_video_info["mtime"], 0)
+                    # Clear invalid cache entry and recalculate
                     mdc_video_info["hash"] = None
-                    continue
-                mdc_video_info["hash"] = hash_array
+                    process_video_hash(
+                        settings["hash_algo"],
+                        settings["hash_size"],
+                        mdc_video_info,
+                    )
+                else:
+                    mdc_video_info["hash"] = hash_array
         if mdc_video_info["hash"] is not None:
             process_video_record(settings["precision_vid"], mdc_video_info)
 
