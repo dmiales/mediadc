@@ -39,12 +39,14 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\OCS\OCSBadRequestException;
+use OCP\ILogger;
 use OCP\IRequest;
 
 class CollectorController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private readonly CollectorService $service,
+		private readonly ILogger $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -87,9 +89,9 @@ class CollectorController extends Controller {
 		array|string $collectorSettings,
 		string $name,
 	): JSONResponse {
-		\OC::$server->getLogger()->info('[TRACE] runTask called with name: ' . $name, ['app' => 'mediadc']);
-		\OC::$server->getLogger()->info('[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds, ['app' => 'mediadc']);
-		\OC::$server->getLogger()->info('[TRACE] runTask collectorSettings: ' . $collectorSettings, ['app' => 'mediadc']);
+		$this->logger->info('[TRACE] runTask called with name: ' . $name);
+		$this->logger->info('[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds);
+		$this->logger->info('[TRACE] runTask collectorSettings: ' . $collectorSettings);
 
 		$params = [
 			'targetDirectoryIds' => json_decode($targetDirectoryIds),
@@ -98,9 +100,9 @@ class CollectorController extends Controller {
 			'name' => $name,
 		];
 
-		\OC::$server->getLogger()->info('[TRACE] runTask calling service->runTask', ['app' => 'mediadc']);
+		$this->logger->info('[TRACE] runTask calling service->runTask');
 		$result = $this->service->runTask($params);
-		\OC::$server->getLogger()->info('[TRACE] runTask service->runTask completed', ['app' => 'mediadc']);
+		$this->logger->info('[TRACE] runTask service->runTask completed');
 
 		return new JSONResponse($result, Http::STATUS_OK);
 	}
