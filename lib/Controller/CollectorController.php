@@ -89,7 +89,7 @@ class CollectorController extends Controller {
 	): JSONResponse {
 		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] runTask called with name: ' . $name . "\n", FILE_APPEND);
 		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds . "\n", FILE_APPEND);
-		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] runTask collectorSettings: ' . $collectorSettings . "\n", FILE_APPEND);
+		file_put_contents('/tmp/mediadc_trace.log', '[TRACE] runTask collectorSettings: ' . (is_array($collectorSettings) ? json_encode($collectorSettings) : $collectorSettings) . "\n", FILE_APPEND);
 
 		$params = [
 			'targetDirectoryIds' => json_decode($targetDirectoryIds),
