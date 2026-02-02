@@ -180,6 +180,17 @@ def process_video_record(precision: int, mdc_video_info: MdcVideoInfo):
                     f.write(f"[TRACE] PYTHON File hash length: {len(mdc_video_info['hash'])}\n")
                 raise
 
+    # Validate hash length before creating new group
+    if video_group_number > 0:
+        expected_length = len(SetOfGroups[0])
+        if len(mdc_video_info["hash"]) != expected_length:
+            with open('/tmp/mediadc_trace.log', 'a') as f:
+                f.write(f"[TRACE] PYTHON ERROR: Attempted to create group with wrong hash length for file id={mdc_video_info['id']}\n")
+                f.write(f"[TRACE] PYTHON Expected length: {expected_length}, got: {len(mdc_video_info['hash'])}\n")
+            log.error("Hash length mismatch when creating new group: fileid=%u, expected=%d, got=%d",
+                     mdc_video_info["id"], expected_length, len(mdc_video_info["hash"]))
+            return
+
     log.debug("[TRACE] process_video_record creating new group %d for file id=%u", video_group_number, mdc_video_info["id"])
     SetOfGroups.append(mdc_video_info["hash"])
     VideoGroups[video_group_number] = [mdc_video_info["id"]]
