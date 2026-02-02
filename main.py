@@ -13,6 +13,8 @@ from python.task import process_task
 
 if __name__ == "__main__":
     # Логируем запуск в файл для трассировки
+    log.error("aaaaaaa1aa2")
+
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write(f"[TRACE] PYTHON main.py started with args: {sys.argv}\n")
 
