@@ -87,9 +87,9 @@ class CollectorController extends Controller {
 		array|string $collectorSettings,
 		string $name,
 	): JSONResponse {
-		\OCP\Util::writeLog('mediadc', '[TRACE] runTask called with name: ' . $name, \OCP\Util::INFO);
-		\OCP\Util::writeLog('mediadc', '[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds, \OCP\Util::INFO);
-		\OCP\Util::writeLog('mediadc', '[TRACE] runTask collectorSettings: ' . $collectorSettings, \OCP\Util::INFO);
+		\OC::$server->getLogger()->info('[TRACE] runTask called with name: ' . $name, ['app' => 'mediadc']);
+		\OC::$server->getLogger()->info('[TRACE] runTask targetDirectoryIds: ' . $targetDirectoryIds, ['app' => 'mediadc']);
+		\OC::$server->getLogger()->info('[TRACE] runTask collectorSettings: ' . $collectorSettings, ['app' => 'mediadc']);
 
 		$params = [
 			'targetDirectoryIds' => json_decode($targetDirectoryIds),
@@ -98,9 +98,9 @@ class CollectorController extends Controller {
 			'name' => $name,
 		];
 
-		\OCP\Util::writeLog('mediadc', '[TRACE] runTask calling service->runTask', \OCP\Util::INFO);
+		\OC::$server->getLogger()->info('[TRACE] runTask calling service->runTask', ['app' => 'mediadc']);
 		$result = $this->service->runTask($params);
-		\OCP\Util::writeLog('mediadc', '[TRACE] runTask service->runTask completed', \OCP\Util::INFO);
+		\OC::$server->getLogger()->info('[TRACE] runTask service->runTask completed', ['app' => 'mediadc']);
 
 		return new JSONResponse($result, Http::STATUS_OK);
 	}
