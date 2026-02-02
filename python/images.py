@@ -41,7 +41,12 @@ def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write(f"[TRACE] PYTHON process_images started for {len(fs_objs)} files\n")
         f.write(f"[TRACE] PYTHON settings: hash_size={settings['hash_size']}, precision_img={settings['precision_img']}\n")
-    log.error("aaaaaaa1aa")
+    
+    # Дополнительное логирование для отладки
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write("[TRACE] aaaaaaa1aa2 - process_images checkpoint\n")
+    log.error("aaaaaaa1aa2")
+    
     log.info("[TRACE] process_images started for %d files", len(fs_objs))
     log.info("[TRACE] process_images settings: hash_size=%d, precision_img=%d", settings["hash_size"], settings["precision_img"])
 
