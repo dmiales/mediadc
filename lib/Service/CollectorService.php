@@ -139,6 +139,11 @@ class CollectorService {
 						$scriptName = $result['path'] . $scriptName;
 					}
 					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP calling pythonService->run with task id: ' . $createdTask->getId() . "\n", FILE_APPEND);
+					
+					// Перехватываем stderr Python-процесса
+					$stderrFile = '/tmp/mediadc_python_stderr_' . $createdTask->getId() . '.log';
+					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr will be logged to: ' . $stderrFile . "\n", FILE_APPEND);
+					
 					$this->pythonService->run(Application::APP_ID, $scriptName, [
 						'-t' => $createdTask->getId()
 					], true, [
@@ -149,6 +154,13 @@ class CollectorService {
 						'LOGLEVEL' => $this->cpaUtils->getNCLogLevel(),
 						'CPA_LOGLEVEL' => $this->cpaUtils->getCpaLogLevel()
 					], true);
+					
+					// Проверяем stderr после запуска
+					if (file_exists($stderrFile)) {
+						$stderrContent = file_get_contents($stderrFile);
+						file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP Python stderr content: ' . $stderrContent . "\n", FILE_APPEND);
+					}
+					
 					file_put_contents('/tmp/mediadc_trace.log', '[TRACE] PHP pythonService->run completed' . "\n", FILE_APPEND);
 				} else {
 					$this->logger->error('[' . self::class . '] Task run error: PHP `exec` function is not available');

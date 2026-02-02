@@ -2,44 +2,81 @@
 import sys
 import os
 
-# Записываем в файл ДО импорта любых модулей
+# СНАЧАЛА пишем в stderr (это всегда работает)
+sys.stderr.write("=" * 80 + "\n")
+sys.stderr.write("[TRACE] PYTHON main.py SCRIPT STARTED\n")
+sys.stderr.write(f"[TRACE] PYTHON args: {sys.argv}\n")
+sys.stderr.write(f"[TRACE] PYTHON Python version: {sys.version}\n")
+try:
+    sys.stderr.write(f"[TRACE] PYTHON working directory: {os.getcwd()}\n")
+except:
+    sys.stderr.write("[TRACE] PYTHON cannot get working directory\n")
+sys.stderr.write(f"[TRACE] PYTHON sys.path: {sys.path}\n")
+sys.stderr.flush()
+
+# Затем пробуем записать в файл
 try:
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write(f"[TRACE] PYTHON main.py SCRIPT STARTED with args: {sys.argv}\n")
         f.write(f"[TRACE] PYTHON main.py working directory: {os.getcwd()}\n")
         f.write(f"[TRACE] PYTHON main.py Python version: {sys.version}\n")
         f.flush()  # Принудительно записываем
+    sys.stderr.write("[TRACE] PYTHON Successfully wrote to /tmp/mediadc_trace.log\n")
 except Exception as e:
     # Если даже запись в файл не работает, пробуем stderr
-    sys.stderr.write(f"[TRACE] PYTHON ERROR writing to log: {e}\n")
-    sys.stderr.flush()
+    sys.stderr.write(f"[TRACE] PYTHON ERROR writing to log file: {e}\n")
+sys.stderr.flush()
 
 import argparse
 
 # Импорты с обработкой ошибок
+sys.stderr.write("[TRACE] PYTHON main.py importing nc_py_api\n")
+sys.stderr.flush()
 try:
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write("[TRACE] PYTHON main.py importing nc_py_api\n")
         f.flush()
     from nc_py_api import CONFIG
+    sys.stderr.write("[TRACE] PYTHON Successfully imported nc_py_api\n")
 except Exception as e:
-    with open('/tmp/mediadc_trace.log', 'a') as f:
-        f.write(f"[TRACE] PYTHON ERROR importing nc_py_api: {e}\n")
-        f.flush()
+    sys.stderr.write(f"[TRACE] PYTHON ERROR importing nc_py_api: {type(e).__name__}: {e}\n")
+    import traceback
+    sys.stderr.write(f"[TRACE] PYTHON TRACEBACK:\n{traceback.format_exc()}\n")
+    try:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON ERROR importing nc_py_api: {e}\n")
+            f.flush()
+    except:
+        pass
+    sys.stderr.flush()
     raise
+sys.stderr.flush()
 
+sys.stderr.write("[TRACE] PYTHON main.py importing numpy, PIL\n")
+sys.stderr.flush()
 try:
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write("[TRACE] PYTHON main.py importing numpy, PIL\n")
         f.flush()
     from numpy import count_nonzero
     from PIL import Image, ImageOps
+    sys.stderr.write("[TRACE] PYTHON Successfully imported numpy, PIL\n")
 except Exception as e:
-    with open('/tmp/mediadc_trace.log', 'a') as f:
-        f.write(f"[TRACE] PYTHON ERROR importing numpy/PIL: {e}\n")
-        f.flush()
+    sys.stderr.write(f"[TRACE] PYTHON ERROR importing numpy/PIL: {type(e).__name__}: {e}\n")
+    import traceback
+    sys.stderr.write(f"[TRACE] PYTHON TRACEBACK:\n{traceback.format_exc()}\n")
+    try:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON ERROR importing numpy/PIL: {e}\n")
+            f.flush()
+    except:
+        pass
+    sys.stderr.flush()
     raise
+sys.stderr.flush()
 
+sys.stderr.write("[TRACE] PYTHON main.py importing python modules\n")
+sys.stderr.flush()
 try:
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write("[TRACE] PYTHON main.py importing python modules\n")
@@ -49,11 +86,20 @@ try:
     from python.images import pil_to_hash
     from python.log import logger as log
     from python.task import process_task
+    sys.stderr.write("[TRACE] PYTHON Successfully imported all python modules\n")
 except Exception as e:
-    with open('/tmp/mediadc_trace.log', 'a') as f:
-        f.write(f"[TRACE] PYTHON ERROR importing python modules: {e}\n")
-        f.flush()
+    sys.stderr.write(f"[TRACE] PYTHON ERROR importing python modules: {type(e).__name__}: {e}\n")
+    import traceback
+    sys.stderr.write(f"[TRACE] PYTHON TRACEBACK:\n{traceback.format_exc()}\n")
+    try:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON ERROR importing python modules: {e}\n")
+            f.flush()
+    except:
+        pass
+    sys.stderr.flush()
     raise
+sys.stderr.flush()
 
 if __name__ == "__main__":
     # Логируем запуск в файл для трассировки
