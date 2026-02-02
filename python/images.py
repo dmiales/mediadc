@@ -15,6 +15,7 @@ from .db_requests import (
     store_err_image_hash,
     store_image_hash,
     store_task_files_group,
+    store_err_video_hash,
 )
 from .imagehash import average_hash, dhash, phash, whash
 from .log import logger as log
@@ -61,16 +62,22 @@ def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
             if check_hexstrings_within_dist:
                 hex_hash = mdc_image_info["hash"].hex()
                 if len(hex_hash) != expected_hash_length:
-                    log.debug("Cached hash length mismatch for fileid %u, expected %u, got %u. Skipping file.",
-                             mdc_image_info["id"], expected_hash_length, len(hex_hash))
+                    log.warning("Cached hash length mismatch for fileid %u, expected %u, got %u. Clearing invalid cache entry.",
+                               mdc_image_info["id"], expected_hash_length, len(hex_hash))
+                    # Clear invalid cache entry from database
+                    store_err_image_hash(mdc_image_info["id"], mdc_image_info["mtime"], 0)
+                    mdc_image_info["hash"] = None
                     continue
                 mdc_image_info["hash"] = hex_hash
             else:
                 hash_array = arr_hash_from_bytes(mdc_image_info["hash"])
                 expected_bits = settings["hash_size"] * settings["hash_size"]
                 if len(hash_array) != expected_bits:
-                    log.debug("Cached hash length mismatch for fileid %u, expected %u bits, got %u. Skipping file.",
-                             mdc_image_info["id"], expected_bits, len(hash_array))
+                    log.warning("Cached hash length mismatch for fileid %u, expected %u bits, got %u. Clearing invalid cache entry.",
+                               mdc_image_info["id"], expected_bits, len(hash_array))
+                    # Clear invalid cache entry from database
+                    store_err_image_hash(mdc_image_info["id"], mdc_image_info["mtime"], 0)
+                    mdc_image_info["hash"] = None
                     continue
                 mdc_image_info["hash"] = hash_array
         if mdc_image_info["hash"] is not None:
