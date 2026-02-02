@@ -1,22 +1,74 @@
-import argparse
+# КРИТИЧЕСКОЕ ЛОГИРОВАНИЕ В САМОМ НАЧАЛЕ - ДО ВСЕХ ИМПОРТОВ
 import sys
+import os
 
-from nc_py_api import CONFIG
-from numpy import count_nonzero
-from PIL import Image, ImageOps
+# Записываем в файл ДО импорта любых модулей
+try:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON main.py SCRIPT STARTED with args: {sys.argv}\n")
+        f.write(f"[TRACE] PYTHON main.py working directory: {os.getcwd()}\n")
+        f.write(f"[TRACE] PYTHON main.py Python version: {sys.version}\n")
+        f.flush()  # Принудительно записываем
+except Exception as e:
+    # Если даже запись в файл не работает, пробуем stderr
+    sys.stderr.write(f"[TRACE] PYTHON ERROR writing to log: {e}\n")
+    sys.stderr.flush()
 
-from python.bundle_info import bundle_info
-from python.db_requests import get_tasks
-from python.images import pil_to_hash
-from python.log import logger as log
-from python.task import process_task
+import argparse
+
+# Импорты с обработкой ошибок
+try:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write("[TRACE] PYTHON main.py importing nc_py_api\n")
+        f.flush()
+    from nc_py_api import CONFIG
+except Exception as e:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON ERROR importing nc_py_api: {e}\n")
+        f.flush()
+    raise
+
+try:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write("[TRACE] PYTHON main.py importing numpy, PIL\n")
+        f.flush()
+    from numpy import count_nonzero
+    from PIL import Image, ImageOps
+except Exception as e:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON ERROR importing numpy/PIL: {e}\n")
+        f.flush()
+    raise
+
+try:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write("[TRACE] PYTHON main.py importing python modules\n")
+        f.flush()
+    from python.bundle_info import bundle_info
+    from python.db_requests import get_tasks
+    from python.images import pil_to_hash
+    from python.log import logger as log
+    from python.task import process_task
+except Exception as e:
+    with open('/tmp/mediadc_trace.log', 'a') as f:
+        f.write(f"[TRACE] PYTHON ERROR importing python modules: {e}\n")
+        f.flush()
+    raise
 
 if __name__ == "__main__":
     # Логируем запуск в файл для трассировки
+    try:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON main.py reached __main__ block\n")
+            f.flush()
+    except:
+        pass
+    
     log.error("aaaaaaa1aa2")
 
     with open('/tmp/mediadc_trace.log', 'a') as f:
         f.write(f"[TRACE] PYTHON main.py started with args: {sys.argv}\n")
+        f.flush()
 
     log.info("[TRACE] main.py started with args: %s", sys.argv)
     parser = argparse.ArgumentParser(description="Module for performing objects operations.", add_help=True)
@@ -34,37 +86,57 @@ if __name__ == "__main__":
     group.add_argument(
         "--test", dest="test", type=str, action="append", help="Performs a comparison of two files. Specify twice."
     )
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except Exception as e:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON ERROR in argparse: {e}\n")
+            f.flush()
+        sys.exit(1)
 
-    if args.bundle_info:
-        log.info("[TRACE] main.py executing bundle_info")
-        bundle_info()
-    elif args.mdc_tasks_id:
-        log.info("[TRACE] main.py processing tasks: %s", args.mdc_tasks_id)
-        if not CONFIG["valid"]:
-            log.error("Unable to parse config or connect to database. Does `occ` works?")
-            sys.exit(1)
-        tasks_to_process = get_tasks()
-        log.info("[TRACE] main.py found %d total tasks in database", len(tasks_to_process))
-        tasks_to_process = list(filter(lambda row: row["id"] in args.mdc_tasks_id, tasks_to_process))
-        missing_tasks = list(filter(lambda r: not any(row["id"] == r for row in tasks_to_process), args.mdc_tasks_id))
-        for x in missing_tasks:
-            log.warning("Cant find task with id=%u", x)
-        log.info("[TRACE] main.py will process %d tasks", len(tasks_to_process))
-        for i in tasks_to_process:
-            log.info("[TRACE] main.py starting task id=%u", i["id"])
-            process_task(i)
-            log.info("[TRACE] main.py completed task id=%u", i["id"])
-    elif args.test:
-        log.info("[TRACE] main.py executing test comparison")
-        for algo in ("phash", "dhash", "whash", "average"):
-            img_hashes = [
-                pil_to_hash(algo, 16, ImageOps.exif_transpose(Image.open(args.test[0]))).flatten(),
-                pil_to_hash(algo, 16, ImageOps.exif_transpose(Image.open(args.test[1]))).flatten(),
-            ]
-            print(f"hamming distance({algo}): {count_nonzero(img_hashes[0] != img_hashes[1])}")
-    else:
-        log.info("[TRACE] main.py showing help")
-        parser.print_help()
-    log.info("[TRACE] main.py exiting")
+    try:
+        if args.bundle_info:
+            log.info("[TRACE] main.py executing bundle_info")
+            bundle_info()
+        elif args.mdc_tasks_id:
+            log.info("[TRACE] main.py processing tasks: %s", args.mdc_tasks_id)
+            if not CONFIG["valid"]:
+                log.error("Unable to parse config or connect to database. Does `occ` works?")
+                sys.exit(1)
+            tasks_to_process = get_tasks()
+            log.info("[TRACE] main.py found %d total tasks in database", len(tasks_to_process))
+            tasks_to_process = list(filter(lambda row: row["id"] in args.mdc_tasks_id, tasks_to_process))
+            missing_tasks = list(filter(lambda r: not any(row["id"] == r for row in tasks_to_process), args.mdc_tasks_id))
+            for x in missing_tasks:
+                log.warning("Cant find task with id=%u", x)
+            log.info("[TRACE] main.py will process %d tasks", len(tasks_to_process))
+            for i in tasks_to_process:
+                log.info("[TRACE] main.py starting task id=%u", i["id"])
+                process_task(i)
+                log.info("[TRACE] main.py completed task id=%u", i["id"])
+        elif args.test:
+            log.info("[TRACE] main.py executing test comparison")
+            for algo in ("phash", "dhash", "whash", "average"):
+                img_hashes = [
+                    pil_to_hash(algo, 16, ImageOps.exif_transpose(Image.open(args.test[0]))).flatten(),
+                    pil_to_hash(algo, 16, ImageOps.exif_transpose(Image.open(args.test[1]))).flatten(),
+                ]
+                print(f"hamming distance({algo}): {count_nonzero(img_hashes[0] != img_hashes[1])}")
+        else:
+            log.info("[TRACE] main.py showing help")
+            parser.print_help()
+    except Exception as e:
+        with open('/tmp/mediadc_trace.log', 'a') as f:
+            f.write(f"[TRACE] PYTHON ERROR in main block: {type(e).__name__}: {e}\n")
+            import traceback
+            f.write(f"[TRACE] PYTHON TRACEBACK:\n{traceback.format_exc()}\n")
+            f.flush()
+        sys.stderr.write(f"[TRACE] PYTHON FATAL ERROR: {e}\n")
+        sys.stderr.flush()
+        sys.exit(1)
+    
+    try:
+        log.info("[TRACE] main.py exiting")
+    except:
+        pass
     sys.exit(0)
