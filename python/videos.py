@@ -75,9 +75,9 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
             if check_hexstrings_within_dist:
                 hex_hash = mdc_video_info["hash"].hex()
                 if len(hex_hash) != expected_hash_length:
-                    log.warning("Cached video hash length mismatch for fileid %u, expected %u, got %u. Recalculating hash.",
+                    log.warning("Cached video hash length mismatch for fileid %u, expected %u, got %u. Recalculating.",
                                mdc_video_info["id"], expected_hash_length, len(hex_hash))
-                    # Clear invalid cache entry and recalculate
+                    # Mark hash as invalid and recalculate
                     mdc_video_info["hash"] = None
                     process_video_hash(
                         settings["hash_algo"],
@@ -90,9 +90,9 @@ def process_videos(settings: dict, fs_objs: list[FsNodeInfo]):
                 hash_array = arr_hash_from_bytes(mdc_video_info["hash"])
                 expected_bits = settings["hash_size"] * settings["hash_size"] * 4
                 if len(hash_array) != expected_bits:
-                    log.warning("Cached video hash length mismatch for fileid %u, expected %u bits, got %u. Recalculating hash.",
+                    log.warning("Cached video hash length mismatch for fileid %u, expected %u bits, got %u. Recalculating.",
                                mdc_video_info["id"], expected_bits, len(hash_array))
-                    # Clear invalid cache entry and recalculate
+                    # Mark hash as invalid and recalculate
                     mdc_video_info["hash"] = None
                     process_video_hash(
                         settings["hash_algo"],

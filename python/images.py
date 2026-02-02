@@ -72,9 +72,9 @@ def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
             if check_hexstrings_within_dist:
                 hex_hash = mdc_image_info["hash"].hex()
                 if len(hex_hash) != expected_hash_length:
-                    log.warning("Cached hash length mismatch for fileid %u, expected %u, got %u. Recalculating hash.",
+                    log.warning("Cached hash length mismatch for fileid %u, expected %u, got %u. Recalculating.",
                                mdc_image_info["id"], expected_hash_length, len(hex_hash))
-                    # Clear invalid cache entry and recalculate
+                    # Mark hash as invalid and recalculate
                     mdc_image_info["hash"] = None
                     mdc_image_info["hash"] = process_hash(
                         settings["hash_algo"],
@@ -88,9 +88,9 @@ def process_images(settings: dict, fs_objs: list[FsNodeInfo]):
                 hash_array = arr_hash_from_bytes(mdc_image_info["hash"])
                 expected_bits = settings["hash_size"] * settings["hash_size"]
                 if len(hash_array) != expected_bits:
-                    log.warning("Cached hash length mismatch for fileid %u, expected %u bits, got %u. Recalculating hash.",
+                    log.warning("Cached hash length mismatch for fileid %u, expected %u bits, got %u. Recalculating.",
                                mdc_image_info["id"], expected_bits, len(hash_array))
-                    # Clear invalid cache entry and recalculate
+                    # Mark hash as invalid and recalculate
                     mdc_image_info["hash"] = None
                     mdc_image_info["hash"] = process_hash(
                         settings["hash_algo"],
