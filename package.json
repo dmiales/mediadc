@@ -27,7 +27,7 @@
 		"Alexander Piskun <bigcat88@icloud.com>"
 	],
 	"scripts": {
-		"build": "cross-env NODE_OPTIONS=--max_old_space_size=1024 webpack --node-env production --progress",
+		"build": "cross-env NODE_OPTIONS=--max_old_space_size=1024 webpack --node-env production --progress --context ./",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
 		"serve": "NODE_ENV=development webpack serve --allowed-hosts all --config webpack.config.js",
