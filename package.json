@@ -27,7 +27,7 @@
 		"Alexander Piskun <bigcat88@icloud.com>"
 	],
 	"scripts": {
-		"build": "NODE_OPTIONS=--max_old_space_size=1024 webpack --node-env production --progress",
+		"build": "cross-env NODE_OPTIONS=--max_old_space_size=1024 webpack --node-env production --progress",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
 		"serve": "NODE_ENV=development webpack serve --allowed-hosts all --config webpack.config.js",
@@ -63,6 +63,7 @@
 		"@nextcloud/eslint-config": "^8.4.1",
 		"@nextcloud/stylelint-config": "^3.0.1",
 		"@nextcloud/webpack-vue-config": "^6.1.1",
+		"cross-env": "^10.1.0",
 		"eslint-webpack-plugin": "^4.2.0",
 		"stylelint-webpack-plugin": "^5.0.1"
 	},
