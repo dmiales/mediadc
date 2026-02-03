@@ -14,6 +14,7 @@ webpackConfig.stats = {
 }
 
 const appId = 'mediadc'
+webpackConfig.context = path.resolve(__dirname)
 
 webpackConfig.entry = {
 	main: { import: path.join(__dirname, 'src', 'main.js'), filename: appId + '-main.js' },
